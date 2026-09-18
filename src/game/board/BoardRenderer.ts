@@ -80,6 +80,21 @@ export class BoardRenderer {
                 ? 0xaaaaaa
                 : 0x555555
         );
+
+        if (piece.king) {
+            this.scene.add.text(
+                x,
+                y,
+                "♛",
+                {
+                    fontSize: "32px",
+                    color:
+                        piece.player === "human"
+                            ? "#222222"
+                            : "#ffffff"
+                }
+            ).setOrigin(0.5);
+        }
     }
 
     private getCellCenter(

@@ -74,5 +74,50 @@ export class Board {
 
         this.cells[toRow][toColumn] = piece;
         this.cells[fromRow][fromColumn] = null;
-}
+    }
+
+    public removePiece(
+        row: number,
+        column: number
+    ): void {
+        this.cells[row][column] = null;
+    }
+
+    public setCell(
+        row: number,
+        column: number,
+        piece: Piece | null
+    ): void {
+        this.cells[row][column] = piece;
+    }
+
+    public promotePiece(
+        row: number,
+        column: number
+    ): void {
+        const piece = this.getCell(row, column);
+
+        if (piece === null) {
+            return;
+        }
+
+        piece.king = true;
+    }
+
+    public shouldPromote(
+        row: number,
+        column: number
+    ): boolean {
+        const piece = this.getCell(row, column);
+
+        if (piece === null || piece.king) {
+            return false;
+        }
+
+        if (piece.player === "human") {
+            return row === 0;
+        }
+
+        return row === Board.SIZE - 1;
+    }
 }

@@ -6,4 +6,5 @@ export interface Position {
 export interface Move {
     from: Position;
     to: Position;
+    captured?: Position;
 }

@@ -1,7 +1,10 @@
 import Phaser from "phaser";
 
 import { GameState } from "../../core/GameState";
-import type { Move } from "../../core/Move";
+import type {
+    Move,
+    Position
+} from "../../core/Move";
 
 import { CheckersRules } from "../../rules/CheckersRules";
 import { BoardRenderer } from "../board/BoardRenderer";
@@ -12,6 +15,7 @@ export class GameScene extends Phaser.Scene {
     private boardRenderer!: BoardRenderer;
 
     private selectedMoveOptions: Move[] = [];
+    private forcedPiece: Position | null = null;
 
     constructor() {
         super("GameScene");
@@ -62,9 +66,72 @@ export class GameScene extends Phaser.Scene {
                 selectedMove.to.column
             );
 
-            this.gameState.changeTurn();
+            const wasPromoted =
+                this.gameState.board.shouldPromote(
+                    selectedMove.to.row,
+                    selectedMove.to.column
+                );
 
+            if (wasPromoted) {
+                this.gameState.board.promotePiece(
+                    selectedMove.to.row,
+                    selectedMove.to.column
+                );
+            }
+
+            if (selectedMove.captured) {
+
+                this.gameState.board.removePiece(
+                    selectedMove.captured.row,
+                    selectedMove.captured.column
+                );
+
+                if (wasPromoted) {
+
+                    this.forcedPiece = null;
+                    this.selectedMoveOptions = [];
+
+                    this.gameState.changeTurn();
+
+                    this.renderBoard();
+
+                    return;
+                }
+
+                const nextCaptures =
+                    CheckersRules.getCapturesForPiece(
+                        this.gameState.board,
+                        selectedMove.to.row,
+                        selectedMove.to.column
+                    );
+
+                if (nextCaptures.length > 0) {
+
+                    this.forcedPiece = {
+                        row: selectedMove.to.row,
+                        column: selectedMove.to.column
+                    };
+
+                    this.selectedMoveOptions =
+                        nextCaptures;
+
+                    this.renderBoard();
+
+                    for (const move of nextCaptures) {
+                        this.boardRenderer.highlightCell(
+                            move.to.row,
+                            move.to.column
+                        );
+                    }
+
+                    return;
+                }
+            }
+
+            this.forcedPiece = null;
             this.selectedMoveOptions = [];
+
+            this.gameState.changeTurn();
 
             this.renderBoard();
 
@@ -82,30 +149,54 @@ export class GameScene extends Phaser.Scene {
         column: number
     ): void {
 
+        if (
+            this.forcedPiece !== null &&
+            (
+                this.forcedPiece.row !== row ||
+                this.forcedPiece.column !== column
+            )
+        ) {
+            return;
+        }
+
         const piece =
-            this.gameState.board.getCell(row, column);
+            this.gameState.board.getCell(
+                row,
+                column
+            );
 
         if (
             piece === null ||
-            piece.player !== this.gameState.getCurrentPlayer()
+            piece.player !==
+                this.gameState.getCurrentPlayer()
         ) {
             this.selectedMoveOptions = [];
             this.renderBoard();
             return;
         }
 
-        this.selectedMoveOptions =
-            CheckersRules.getValidMoves(
-                this.gameState.board,
-                row,
-                column
-            );
+        if (this.forcedPiece !== null) {
+
+            this.selectedMoveOptions =
+                CheckersRules.getCapturesForPiece(
+                    this.gameState.board,
+                    row,
+                    column
+                );
+
+        } else {
+
+            this.selectedMoveOptions =
+                CheckersRules.getValidMoves(
+                    this.gameState.board,
+                    row,
+                    column
+                );
+        }
 
         this.renderBoard();
 
-        for (
-            const move of this.selectedMoveOptions
-        ) {
+        for (const move of this.selectedMoveOptions) {
             this.boardRenderer.highlightCell(
                 move.to.row,
                 move.to.column
