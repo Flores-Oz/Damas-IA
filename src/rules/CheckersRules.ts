@@ -4,6 +4,38 @@ import type { Piece, Player } from "../core/Piece";
 
 export class CheckersRules {
 
+    public static getAllValidMoves(
+        board: Board,
+        player: Player
+    ): Move[] {
+
+        const allMoves: Move[] = [];
+
+        for (let row = 0; row < Board.SIZE; row++) {
+            for (let column = 0; column < Board.SIZE; column++) {
+
+                const piece = board.getCell(row, column);
+
+                if (
+                    piece === null ||
+                    piece.player !== player
+                ) {
+                    continue;
+                }
+
+                const moves = this.getValidMoves(
+                    board,
+                    row,
+                    column
+                );
+
+                allMoves.push(...moves);
+            }
+        }
+
+        return allMoves;
+    }
+
     public static hasAnyCapture(
         board: Board,
         player: Player

@@ -1,4 +1,7 @@
-import type { Piece } from "./Piece";
+import type {
+    Piece,
+    Player
+} from "./Piece";
 
 export class Board {
     public static readonly SIZE = 8;
@@ -119,5 +122,25 @@ export class Board {
         }
 
         return row === Board.SIZE - 1;
+    }
+
+    public countPieces(player: Player): number {
+        let count = 0;
+
+        for (let row = 0; row < Board.SIZE; row++) {
+            for (let column = 0; column < Board.SIZE; column++) {
+
+                const piece = this.getCell(row, column);
+
+                if (
+                    piece !== null &&
+                    piece.player === player
+                ) {
+                    count++;
+                }
+            }
+        }
+
+        return count;
     }
 }

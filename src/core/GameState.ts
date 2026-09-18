@@ -1,5 +1,6 @@
 import { Board } from "./Board";
 import type { Player } from "./Piece";
+import { CheckersRules } from "../rules/CheckersRules";
 
 export class GameState {
 
@@ -21,5 +22,36 @@ export class GameState {
             this.currentPlayer === "human"
                 ? "ai"
                 : "human";
+    }
+
+    public getWinner(): Player | null {
+
+        const humanPieces =
+            this.board.countPieces("human");
+
+        const aiPieces =
+            this.board.countPieces("ai");
+
+        if (humanPieces === 0) {
+            return "ai";
+        }
+
+        if (aiPieces === 0) {
+            return "human";
+        }
+
+        const currentMoves =
+            CheckersRules.getAllValidMoves(
+                this.board,
+                this.currentPlayer
+            );
+
+        if (currentMoves.length === 0) {
+            return this.currentPlayer === "human"
+                ? "ai"
+                : "human";
+        }
+
+        return null;
     }
 }

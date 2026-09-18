@@ -5,6 +5,7 @@ import type {
     Move,
     Position
 } from "../../core/Move";
+import type { Player } from "../../core/Piece";
 
 import { CheckersRules } from "../../rules/CheckersRules";
 import { BoardRenderer } from "../board/BoardRenderer";
@@ -16,6 +17,7 @@ export class GameScene extends Phaser.Scene {
 
     private selectedMoveOptions: Move[] = [];
     private forcedPiece: Position | null = null;
+    private winner: Player | null = null;
 
     constructor() {
         super("GameScene");
@@ -42,6 +44,10 @@ export class GameScene extends Phaser.Scene {
         x: number,
         y: number
     ): void {
+
+        if (this.winner !== null) {
+            return;
+        }
 
         const position =
             this.boardRenderer.getBoardPosition(x, y);
@@ -93,6 +99,10 @@ export class GameScene extends Phaser.Scene {
 
                     this.gameState.changeTurn();
 
+                    if (this.checkGameOver()) {
+                        return;
+                    }
+
                     this.renderBoard();
 
                     return;
@@ -132,6 +142,10 @@ export class GameScene extends Phaser.Scene {
             this.selectedMoveOptions = [];
 
             this.gameState.changeTurn();
+
+            if (this.checkGameOver()) {
+                return;
+            }
 
             this.renderBoard();
 
@@ -204,6 +218,25 @@ export class GameScene extends Phaser.Scene {
         }
     }
 
+    private checkGameOver(): boolean {
+
+        const winner =
+            this.gameState.getWinner();
+
+        if (winner === null) {
+            return false;
+        }
+
+        this.winner = winner;
+
+        this.selectedMoveOptions = [];
+        this.forcedPiece = null;
+
+        this.renderBoard();
+
+        return true;
+    }
+
     private renderBoard(): void {
 
         this.children.removeAll();
@@ -215,6 +248,23 @@ export class GameScene extends Phaser.Scene {
             );
 
         this.boardRenderer.render();
+
+        if (this.winner !== null) {
+
+            this.add.text(
+                400,
+                570,
+                this.winner === "human"
+                    ? "¡Jugador gana!"
+                    : "¡IA gana!",
+                {
+                    fontSize: "28px",
+                    color: "#ffffff"
+                }
+            ).setOrigin(0.5);
+
+            return;
+        }
 
         const currentPlayer =
             this.gameState.getCurrentPlayer();
