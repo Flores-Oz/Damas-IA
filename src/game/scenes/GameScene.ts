@@ -4,24 +4,20 @@ import { BoardRenderer } from "../board/BoardRenderer";
 
 export class GameScene extends Phaser.Scene {
 
-    private board: Board;
-    
+    private board!: Board;
+
     constructor() {
         super("GameScene");
     }
 
-    preload() {
-        // Cargar imágenes aquí
-    }
+    create(): void {
+        this.board = new Board();
 
-    create():void {
-        // Crear objetos aquí
-       this.board = new Board();
-       const boardRenderer = new BoardRenderer(this);
-       boardRenderer.render();   
-    }
+        const boardRenderer = new BoardRenderer(
+            this,
+            this.board
+        );
 
-    update(time: number, delta: number) {
-        // Lógica de actualización aquí
+        boardRenderer.render();
     }
 }
