@@ -1,6 +1,11 @@
 import Phaser from "phaser";
+import { Board } from "../../core/Board";
+import { BoardRenderer } from "../board/BoardRenderer";
 
 export class GameScene extends Phaser.Scene {
+
+    private board: Board;
+    
     constructor() {
         super("GameScene");
     }
@@ -9,12 +14,11 @@ export class GameScene extends Phaser.Scene {
         // Cargar imágenes aquí
     }
 
-    create() {
+    create():void {
         // Crear objetos aquí
-        this.add.text(400,300, "DAMAS-IA",{
-            fontSize: "48px", 
-            color: "#FFFFFF"
-        }).setOrigin(0.5);
+       this.board = new Board();
+       const boardRenderer = new BoardRenderer(this);
+       boardRenderer.render();   
     }
 
     update(time: number, delta: number) {
