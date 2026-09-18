@@ -98,4 +98,51 @@ export class BoardRenderer {
                 this.tileSize / 2
         };
     }
+    public getBoardPosition(
+        x: number,
+        y: number
+    ): { row: number; column: number } | null {
+
+        const column = Math.floor(
+            (x - this.offsetX) / this.tileSize
+        );
+
+        const row = Math.floor(
+            (y - this.offsetY) / this.tileSize
+        );
+
+        if (
+            row < 0 ||
+            row >= Board.SIZE ||
+            column < 0 ||
+            column >= Board.SIZE
+        ) {
+            return null;
+        }
+
+        return {
+            row,
+            column
+        };
+    }
+
+    public highlightCell(
+        row: number,
+        column: number
+    ): void {
+
+        const { x, y } = this.getCellCenter(
+            row,
+            column
+        );
+
+        this.scene.add.rectangle(
+            x,
+            y,
+            this.tileSize - 8,
+            this.tileSize - 8,
+            0x00ff00,
+            0.35
+        );
+    }
 }

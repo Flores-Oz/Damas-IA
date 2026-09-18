@@ -45,4 +45,34 @@ export class Board {
     private isPlayableCell(row: number, column: number): boolean {
         return (row + column) % 2 !== 0;
     }
+
+    public isInside(row: number, column: number): boolean {
+    return (
+        row >= 0 &&
+        row < Board.SIZE &&
+        column >= 0 &&
+        column < Board.SIZE
+    );
+}
+
+    public isEmpty(row: number, column: number): boolean {
+        return this.getCell(row, column) === null;
+    }
+
+    public movePiece(
+        fromRow: number,
+        fromColumn: number,
+        toRow: number,
+        toColumn: number
+    ): void {
+
+        const piece = this.getCell(fromRow, fromColumn);
+
+        if (piece === null) {
+            return;
+        }
+
+        this.cells[toRow][toColumn] = piece;
+        this.cells[fromRow][fromColumn] = null;
+}
 }
