@@ -1,6 +1,6 @@
 import Phaser from "phaser";
 
-import { Board } from "../../core/Board";
+import { GameState } from "../../core/GameState";
 import type { Move } from "../../core/Move";
 
 import { CheckersRules } from "../../rules/CheckersRules";
@@ -8,7 +8,7 @@ import { BoardRenderer } from "../board/BoardRenderer";
 
 export class GameScene extends Phaser.Scene {
 
-    private board!: Board;
+    private gameState!: GameState;
     private boardRenderer!: BoardRenderer;
 
     private selectedMoveOptions: Move[] = [];
@@ -19,7 +19,7 @@ export class GameScene extends Phaser.Scene {
 
     create(): void {
 
-        this.board = new Board();
+        this.gameState = new GameState();
 
         this.renderBoard();
 
@@ -55,12 +55,14 @@ export class GameScene extends Phaser.Scene {
 
         if (selectedMove) {
 
-            this.board.movePiece(
+            this.gameState.board.movePiece(
                 selectedMove.from.row,
                 selectedMove.from.column,
                 selectedMove.to.row,
                 selectedMove.to.column
             );
+
+            this.gameState.changeTurn();
 
             this.selectedMoveOptions = [];
 
@@ -81,11 +83,11 @@ export class GameScene extends Phaser.Scene {
     ): void {
 
         const piece =
-            this.board.getCell(row, column);
+            this.gameState.board.getCell(row, column);
 
         if (
             piece === null ||
-            piece.player !== "human"
+            piece.player !== this.gameState.getCurrentPlayer()
         ) {
             this.selectedMoveOptions = [];
             this.renderBoard();
@@ -94,7 +96,7 @@ export class GameScene extends Phaser.Scene {
 
         this.selectedMoveOptions =
             CheckersRules.getValidMoves(
-                this.board,
+                this.gameState.board,
                 row,
                 column
             );
@@ -118,9 +120,26 @@ export class GameScene extends Phaser.Scene {
         this.boardRenderer =
             new BoardRenderer(
                 this,
-                this.board
+                this.gameState.board
             );
 
         this.boardRenderer.render();
+
+        const currentPlayer =
+            this.gameState.getCurrentPlayer();
+
+        this.add.text(
+            20,
+            20,
+            `Turno: ${
+                currentPlayer === "human"
+                    ? "Jugador"
+                    : "IA"
+            }`,
+            {
+                fontSize: "24px",
+                color: "#ffffff"
+            }
+        );
     }
 }
