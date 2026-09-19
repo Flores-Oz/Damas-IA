@@ -9,11 +9,13 @@ import type { Player } from "../../core/Piece";
 
 import { CheckersRules } from "../../rules/CheckersRules";
 import { BoardRenderer } from "../board/BoardRenderer";
+import { ReactiveAgent } from "../../agents/ReactiveAgent";
 
 export class GameScene extends Phaser.Scene {
 
     private gameState!: GameState;
     private boardRenderer!: BoardRenderer;
+    private aiAgent!: ReactiveAgent;
 
     private selectedMoveOptions: Move[] = [];
     private forcedPiece: Position | null = null;
@@ -26,6 +28,7 @@ export class GameScene extends Phaser.Scene {
     create(): void {
 
         this.gameState = new GameState();
+        this.aiAgent = new ReactiveAgent();
 
         this.renderBoard();
 
@@ -38,6 +41,38 @@ export class GameScene extends Phaser.Scene {
                 );
             }
         );
+    }
+
+    private executeMove(move: Move): boolean {
+
+        this.gameState.board.movePiece(
+            move.from.row,
+            move.from.column,
+            move.to.row,
+            move.to.column
+        );
+
+        const wasPromoted =
+            this.gameState.board.shouldPromote(
+                move.to.row,
+                move.to.column
+            );
+
+        if (wasPromoted) {
+            this.gameState.board.promotePiece(
+                move.to.row,
+                move.to.column
+            );
+        }
+
+        if (move.captured) {
+            this.gameState.board.removePiece(
+                move.captured.row,
+                move.captured.column
+            );
+        }
+
+        return wasPromoted;
     }
 
     private handleBoardClick(
@@ -65,48 +100,13 @@ export class GameScene extends Phaser.Scene {
 
         if (selectedMove) {
 
-            this.gameState.board.movePiece(
-                selectedMove.from.row,
-                selectedMove.from.column,
-                selectedMove.to.row,
-                selectedMove.to.column
-            );
-
             const wasPromoted =
-                this.gameState.board.shouldPromote(
-                    selectedMove.to.row,
-                    selectedMove.to.column
-                );
+                this.executeMove(selectedMove);
 
-            if (wasPromoted) {
-                this.gameState.board.promotePiece(
-                    selectedMove.to.row,
-                    selectedMove.to.column
-                );
-            }
-
-            if (selectedMove.captured) {
-
-                this.gameState.board.removePiece(
-                    selectedMove.captured.row,
-                    selectedMove.captured.column
-                );
-
-                if (wasPromoted) {
-
-                    this.forcedPiece = null;
-                    this.selectedMoveOptions = [];
-
-                    this.gameState.changeTurn();
-
-                    if (this.checkGameOver()) {
-                        return;
-                    }
-
-                    this.renderBoard();
-
-                    return;
-                }
+            if (
+                selectedMove.captured &&
+                !wasPromoted
+            ) {
 
                 const nextCaptures =
                     CheckersRules.getCapturesForPiece(
@@ -148,6 +148,8 @@ export class GameScene extends Phaser.Scene {
             }
 
             this.renderBoard();
+
+            this.runAiTurn();
 
             return;
         }
@@ -216,6 +218,80 @@ export class GameScene extends Phaser.Scene {
                 move.to.column
             );
         }
+    }
+
+    private runAiTurn(): void {
+
+        if (
+            this.gameState.getCurrentPlayer() !== "ai"
+        ) {
+            return;
+        }
+
+        this.time.delayedCall(
+            500,
+            () => {
+                const move =
+                    this.aiAgent.chooseMove(
+                        this.gameState
+                    );
+
+                if (move === null) {
+                    this.checkGameOver();
+                    return;
+                }
+
+                this.executeAiMove(move);
+            }
+        );
+    }
+
+    private executeAiMove(
+        move: Move
+    ): void {
+
+        const wasPromoted =
+            this.executeMove(move);
+
+        this.renderBoard();
+
+        if (
+            move.captured &&
+            !wasPromoted
+        ) {
+
+            const nextCaptures =
+                CheckersRules.getCapturesForPiece(
+                    this.gameState.board,
+                    move.to.row,
+                    move.to.column
+                );
+
+            if (nextCaptures.length > 0) {
+
+                const nextMove =
+                    nextCaptures[0];
+
+                this.time.delayedCall(
+                    500,
+                    () => {
+                        this.executeAiMove(
+                            nextMove
+                        );
+                    }
+                );
+
+                return;
+            }
+        }
+
+        this.gameState.changeTurn();
+
+        if (this.checkGameOver()) {
+            return;
+        }
+
+        this.renderBoard();
     }
 
     private checkGameOver(): boolean {
