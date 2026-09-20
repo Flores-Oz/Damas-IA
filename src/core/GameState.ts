@@ -8,6 +8,10 @@ export class GameState {
 
     private currentPlayer: Player;
 
+    private movesWithoutProgress = 0;
+
+    private readonly drawLimit = 40;
+
     constructor() {
         this.board = new Board();
         this.currentPlayer = "human";
@@ -22,6 +26,27 @@ export class GameState {
             this.currentPlayer === "human"
                 ? "ai"
                 : "human";
+    }
+
+    public registerProgress(
+        captured: boolean,
+        promoted: boolean
+    ): void {
+
+        if (captured || promoted) {
+            this.movesWithoutProgress = 0;
+            return;
+        }
+
+        this.movesWithoutProgress++;
+    }
+
+    public isDraw(): boolean {
+        return this.movesWithoutProgress >= this.drawLimit;
+    }
+
+    public getMovesWithoutProgress(): number {
+        return this.movesWithoutProgress;
     }
 
     public getWinner(): Player | null {

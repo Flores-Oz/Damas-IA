@@ -2,6 +2,7 @@ import type {
     Piece,
     Player
 } from "./Piece";
+import type { Move } from "./Move";
 
 export class Board {
     public static readonly SIZE = 8;
@@ -142,5 +143,75 @@ export class Board {
         }
 
         return count;
+    }
+
+    public clone(): Board {
+
+        const clonedBoard = new Board();
+
+        for (let row = 0; row < Board.SIZE; row++) {
+            for (
+                let column = 0;
+                column < Board.SIZE;
+                column++
+            ) {
+
+                const piece =
+                    this.getCell(
+                        row,
+                        column
+                    );
+
+                if (piece === null) {
+                    clonedBoard.setCell(
+                        row,
+                        column,
+                        null
+                    );
+
+                    continue;
+                }
+
+                clonedBoard.setCell(
+                    row,
+                    column,
+                    {
+                        player: piece.player,
+                        king: piece.king
+                    }
+                );
+            }
+        }
+
+        return clonedBoard;
+    }
+
+    public applyMove(move: Move): void {
+
+        this.movePiece(
+            move.from.row,
+            move.from.column,
+            move.to.row,
+            move.to.column
+        );
+
+        if (move.captured) {
+            this.removePiece(
+                move.captured.row,
+                move.captured.column
+            );
+        }
+
+        if (
+            this.shouldPromote(
+                move.to.row,
+                move.to.column
+            )
+        ) {
+            this.promotePiece(
+                move.to.row,
+                move.to.column
+            );
+        }
     }
 }

@@ -9,17 +9,23 @@ import type { Player } from "../../core/Piece";
 
 import { CheckersRules } from "../../rules/CheckersRules";
 import { BoardRenderer } from "../board/BoardRenderer";
+import type { Agent } from "../../agents/Agent";
 import { ReactiveAgent } from "../../agents/ReactiveAgent";
+import { GoalAgent } from "../../agents/GoalAgent";
 
 export class GameScene extends Phaser.Scene {
 
     private gameState!: GameState;
     private boardRenderer!: BoardRenderer;
-    private aiAgent!: ReactiveAgent;
+    private aiAgent: Agent | null = null;
+    private agentName = "";
 
     private selectedMoveOptions: Move[] = [];
     private forcedPiece: Position | null = null;
     private winner: Player | null = null;
+
+    private turnHadCapture = false;
+    private turnHadPromotion = false;
 
     constructor() {
         super("GameScene");
@@ -27,14 +33,16 @@ export class GameScene extends Phaser.Scene {
 
     create(): void {
 
-        this.gameState = new GameState();
-        this.aiAgent = new ReactiveAgent();
-
-        this.renderBoard();
+        this.showAgentSelection();
 
         this.input.on(
             "pointerdown",
             (pointer: Phaser.Input.Pointer) => {
+
+                if (this.aiAgent === null) {
+                    return;
+                }
+
                 this.handleBoardClick(
                     pointer.x,
                     pointer.y
@@ -42,6 +50,249 @@ export class GameScene extends Phaser.Scene {
             }
         );
     }
+
+    // ─── Selección de agente ───────────────────────────────────────────────────
+
+    private showAgentSelection(): void {
+
+        this.children.removeAll(true);
+
+        this.add.text(
+            400,
+            120,
+            "DAMAS IA",
+            {
+                fontSize: "48px",
+                color: "#ffffff"
+            }
+        ).setOrigin(0.5);
+
+        this.add.text(
+            400,
+            190,
+            "Selecciona el agente",
+            {
+                fontSize: "24px",
+                color: "#cccccc"
+            }
+        ).setOrigin(0.5);
+
+        this.createAgentButton(
+            400,
+            280,
+            "Agente Reactivo",
+            () => {
+                this.startGame(
+                    new ReactiveAgent(),
+                    "Reactivo"
+                );
+            }
+        );
+
+        this.createAgentButton(
+            400,
+            370,
+            "Agente por Objetivos (Minimax)",
+            () => {
+                this.startGame(
+                    new GoalAgent(),
+                    "Objetivos - Minimax"
+                );
+            }
+        );
+    }
+
+    private createAgentButton(
+        x: number,
+        y: number,
+        label: string,
+        onClick: () => void
+    ): void {
+
+        const button =
+            this.add.rectangle(
+                x,
+                y,
+                380,
+                60,
+                0x333333
+            );
+
+        button
+            .setStrokeStyle(2, 0xffffff)
+            .setInteractive({ useHandCursor: true });
+
+        const text =
+            this.add.text(
+                x,
+                y,
+                label,
+                {
+                    fontSize: "20px",
+                    color: "#ffffff"
+                }
+            )
+            .setOrigin(0.5);
+
+        button.on("pointerover", () => {
+            button.setFillStyle(0x555555);
+        });
+
+        button.on("pointerout", () => {
+            button.setFillStyle(0x333333);
+        });
+
+        button.on("pointerdown", () => {
+            button.disableInteractive();
+            text.setVisible(false);
+            onClick();
+        });
+    }
+
+    private startGame(
+        agent: Agent,
+        name: string
+    ): void {
+
+        this.aiAgent = agent;
+        this.agentName = name;
+
+        this.gameState = new GameState();
+
+        this.winner = null;
+        this.forcedPiece = null;
+        this.selectedMoveOptions = [];
+
+        this.turnHadCapture = false;
+        this.turnHadPromotion = false;
+
+        this.renderBoard();
+    }
+
+    // ─── Pantalla final ────────────────────────────────────────────────────────
+
+    private showGameOver(): void {
+
+        let message: string;
+
+        if (this.gameState.isDraw()) {
+            message = "¡EMPATE!";
+        } else if (this.winner === "human") {
+            message = "¡JUGADOR GANA!";
+        } else {
+            message = "¡IA GANA!";
+        }
+
+        this.add.rectangle(
+            400,
+            300,
+            500,
+            300,
+            0x111111,
+            0.95
+        )
+        .setStrokeStyle(3, 0xffffff);
+
+        this.add.text(
+            400,
+            220,
+            message,
+            {
+                fontSize: "36px",
+                color: "#ffffff"
+            }
+        ).setOrigin(0.5);
+
+        this.createEndButton(
+            400,
+            300,
+            "Jugar de nuevo",
+            () => {
+                this.restartGame();
+            }
+        );
+
+        this.createEndButton(
+            400,
+            380,
+            "Volver al menú",
+            () => {
+                this.returnToMenu();
+            }
+        );
+    }
+
+    private createEndButton(
+        x: number,
+        y: number,
+        label: string,
+        onClick: () => void
+    ): void {
+
+        const button =
+            this.add.rectangle(
+                x,
+                y,
+                280,
+                50,
+                0x333333
+            );
+
+        button
+            .setStrokeStyle(2, 0xffffff)
+            .setInteractive({ useHandCursor: true });
+
+        this.add.text(
+            x,
+            y,
+            label,
+            {
+                fontSize: "20px",
+                color: "#ffffff"
+            }
+        ).setOrigin(0.5);
+
+        button.on("pointerover", () => {
+            button.setFillStyle(0x555555);
+        });
+
+        button.on("pointerout", () => {
+            button.setFillStyle(0x333333);
+        });
+
+        button.on("pointerdown", onClick);
+    }
+
+    private restartGame(): void {
+
+        this.gameState = new GameState();
+
+        this.winner = null;
+        this.forcedPiece = null;
+        this.selectedMoveOptions = [];
+
+        this.turnHadCapture = false;
+        this.turnHadPromotion = false;
+
+        this.renderBoard();
+    }
+
+    private returnToMenu(): void {
+
+        this.aiAgent = null;
+        this.agentName = "";
+
+        this.winner = null;
+        this.forcedPiece = null;
+        this.selectedMoveOptions = [];
+
+        this.turnHadCapture = false;
+        this.turnHadPromotion = false;
+
+        this.showAgentSelection();
+    }
+
+    // ─── Lógica de movimiento ──────────────────────────────────────────────────
 
     private executeMove(move: Move): boolean {
 
@@ -63,6 +314,7 @@ export class GameScene extends Phaser.Scene {
                 move.to.row,
                 move.to.column
             );
+            this.turnHadPromotion = true;
         }
 
         if (move.captured) {
@@ -70,6 +322,7 @@ export class GameScene extends Phaser.Scene {
                 move.captured.row,
                 move.captured.column
             );
+            this.turnHadCapture = true;
         }
 
         return wasPromoted;
@@ -80,7 +333,10 @@ export class GameScene extends Phaser.Scene {
         y: number
     ): void {
 
-        if (this.winner !== null) {
+        if (
+            this.winner !== null ||
+            this.gameState.isDraw()
+        ) {
             return;
         }
 
@@ -141,13 +397,14 @@ export class GameScene extends Phaser.Scene {
             this.forcedPiece = null;
             this.selectedMoveOptions = [];
 
-            this.gameState.changeTurn();
+            this.finishTurn();
 
-            if (this.checkGameOver()) {
+            if (
+                this.winner !== null ||
+                this.gameState.isDraw()
+            ) {
                 return;
             }
-
-            this.renderBoard();
 
             this.runAiTurn();
 
@@ -220,7 +477,39 @@ export class GameScene extends Phaser.Scene {
         }
     }
 
+    private finishTurn(): void {
+
+        this.gameState.registerProgress(
+            this.turnHadCapture,
+            this.turnHadPromotion
+        );
+
+        this.turnHadCapture = false;
+        this.turnHadPromotion = false;
+
+        this.gameState.changeTurn();
+
+        if (this.gameState.isDraw()) {
+            this.renderBoard();
+            return;
+        }
+
+        if (this.checkGameOver()) {
+            return;
+        }
+
+        this.renderBoard();
+    }
+
     private runAiTurn(): void {
+
+        if (
+            this.aiAgent === null ||
+            this.winner !== null ||
+            this.gameState.isDraw()
+        ) {
+            return;
+        }
 
         if (
             this.gameState.getCurrentPlayer() !== "ai"
@@ -228,11 +517,13 @@ export class GameScene extends Phaser.Scene {
             return;
         }
 
+        const agent = this.aiAgent;
+
         this.time.delayedCall(
             500,
             () => {
                 const move =
-                    this.aiAgent.chooseMove(
+                    agent.chooseMove(
                         this.gameState
                     );
 
@@ -285,13 +576,7 @@ export class GameScene extends Phaser.Scene {
             }
         }
 
-        this.gameState.changeTurn();
-
-        if (this.checkGameOver()) {
-            return;
-        }
-
-        this.renderBoard();
+        this.finishTurn();
     }
 
     private checkGameOver(): boolean {
@@ -313,9 +598,11 @@ export class GameScene extends Phaser.Scene {
         return true;
     }
 
+    // ─── Render ────────────────────────────────────────────────────────────────
+
     private renderBoard(): void {
 
-        this.children.removeAll();
+        this.children.removeAll(true);
 
         this.boardRenderer =
             new BoardRenderer(
@@ -325,20 +612,11 @@ export class GameScene extends Phaser.Scene {
 
         this.boardRenderer.render();
 
-        if (this.winner !== null) {
-
-            this.add.text(
-                400,
-                570,
-                this.winner === "human"
-                    ? "¡Jugador gana!"
-                    : "¡IA gana!",
-                {
-                    fontSize: "28px",
-                    color: "#ffffff"
-                }
-            ).setOrigin(0.5);
-
+        if (
+            this.winner !== null ||
+            this.gameState.isDraw()
+        ) {
+            this.showGameOver();
             return;
         }
 
@@ -358,5 +636,15 @@ export class GameScene extends Phaser.Scene {
                 color: "#ffffff"
             }
         );
+
+        this.add.text(
+            600,
+            20,
+            `IA: ${this.agentName}`,
+            {
+                fontSize: "18px",
+                color: "#aaaaaa"
+            }
+        ).setOrigin(0.5);
     }
 }

@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Documentación Técnica - Damas IA</title>
+<style>
+  @page {
+    size: A4;
+    margin: 20mm 15mm 20mm 15mm;
+  }
+  body {
+    font-family: 'Segoe UI', Helvetica, Arial, sans-serif;
+    color: #1e293b;
+    line-height: 1.6;
+    font-size: 11pt;
+    margin: 0;
+    padding: 0;
+  }
+  h1, h2, h3, h4 {
+    color: #0f172a;
+    font-weight: 700;
+  }
+  h1 {
+    font-size: 24pt;
+    border-bottom: 3px solid #2563eb;
+    padding-bottom: 8px;
+    margin-top: 0;
+    margin-bottom: 12px;
+  }
+  .subtitle {
+    font-size: 13pt;
+    color: #64748b;
+    margin-top: -8px;
+    margin-bottom: 25px;
+    font-weight: 500;
+  }
+  h2 {
+    font-size: 16pt;
+    color: #1e40af;
+    border-bottom: 1px solid #cbd5e1;
+    padding-bottom: 6px;
+    margin-top: 28px;
+    margin-bottom: 12px;
+    page-break-after: avoid;
+  }
+  h3 {
+    font-size: 12.5pt;
+    color: #0369a1;
+    margin-top: 18px;
+    margin-bottom: 8px;
+    page-break-after: avoid;
+  }
+  p {
+    margin: 0 0 10px 0;
+    text-align: justify;
+  }
+  ul, ol {
+    margin: 0 0 12px 0;
+    padding-left: 24px;
+  }
+  li {
+    margin-bottom: 5px;
+  }
+  code {
+    font-family: 'Consolas', 'Courier New', monospace;
+    background-color: #f1f5f9;
+    color: #0969da;
+    padding: 2px 5px;
+    border-radius: 4px;
+    font-size: 9.5pt;
+  }
+  pre {
+    background-color: #0f172a;
+    color: #f8fafc;
+    padding: 12px;
+    border-radius: 6px;
+    font-family: 'Consolas', 'Courier New', monospace;
+    font-size: 9pt;
+    overflow-x: auto;
+    margin: 10px 0 15px 0;
+    page-break-inside: avoid;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 15px 0;
+    font-size: 10pt;
+    page-break-inside: avoid;
+  }
+  th, td {
+    border: 1px solid #cbd5e1;
+    padding: 8px 12px;
+    text-align: left;
+  }
+  th {
+    background-color: #f8fafc;
+    color: #334155;
+    font-weight: 600;
+  }
+  tr:nth-child(even) {
+    background-color: #f8fafc;
+  }
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 8.5pt;
+    font-weight: 600;
+  }
+  .badge-blue { background: #dbeafe; color: #1e40af; }
+  .badge-green { background: #dcfce7; color: #166534; }
+  .badge-amber { background: #fef3c7; color: #92400e; }
+  .callout {
+    background-color: #eff6ff;
+    border-left: 4px solid #3b82f6;
+    padding: 10px 14px;
+    margin: 12px 0;
+    border-radius: 0 6px 6px 0;
+    font-size: 10pt;
+  }
+  .callout-warning {
+    background-color: #fffbeb;
+    border-left-color: #f59e0b;
+  }
+  .page-break {
+    page-break-before: always;
+  }
+  .header-meta {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    padding: 12px 16px;
+    margin-bottom: 25px;
+    font-size: 10pt;
+  }
+  .header-meta table {
+    margin: 0;
+    border: none;
+  }
+  .header-meta td {
+    border: none;
+    padding: 4px 8px;
+  }
+</style>
+</head>
+<body>
+
+<h1>Damas IA: Arquitectura, Motor y Agente Reactivo</h1>
+<div class="subtitle">Documento Técnico de Implementación, Reglas y Guía de Modificaciones</div>
+
+<div class="header-meta">
+  <table>
+    <tr>
+      <td><strong>Proyecto:</strong> Primer Proyecto de Inteligencia Artificial</td>
+      <td><strong>Ciclo:</strong> Segundo Semestre 2026</td>
+    </tr>
+    <tr>
+      <td><strong>Tecnologías:</strong> TypeScript, Phaser 3, Vite, HTML5 Canvas</td>
+      <td><strong>Estado:</strong> Sprint 1 Finalizado (Motor + Agente Reactivo)</td>
+    </tr>
+  </table>
+</div>
+
+<h2>1. Resumen Ejecutivo y Enfoque Arquitectónico</h2>
+<p>
+El proyecto consiste en el desarrollo de un juego completo de <strong>Damas Tradicionales</strong> asistido por Inteligencia Artificial. Desde su concepción técnica, se diseñó bajo una estricta <strong>separación de responsabilidades</strong> entre la interfaz gráfica y el motor lógico.
+</p>
+
+<div class="callout">
+  <strong>Principio Fundamental de Diseño:</strong><br>
+  <em>Phaser 3 únicamente renderiza píxeles y escucha eventos de entrada del mouse. No conoce ninguna regla de damas ni decide qué jugadas son legales.</em>
+  Todo el cómputo de jugadas, turnos, capturas obligatorias y agentes de IA opera de forma desacoplada y autónoma en TypeScript puro.
+</div>
+
+<p>Esta arquitectura garantiza que:</p>
+<ol>
+  <li>Cualquier agente (Reactivo o Minimax) recibe exactamente el mismo objeto de percepción: <code>GameState</code>.</li>
+  <li>El agente únicamente <strong>decide</strong> una acción emitiendo un objeto <code>Move</code>; es el juego (<code>GameScene</code>) quien <strong>ejecuta</strong> físicamente el movimiento sobre el tablero.</li>
+  <li>Se pueden simular partidas automáticas de <em>Agente vs. Agente</em> o simulaciones profundas de Minimax sin depender de la existencia de la vista o del canvas.</li>
+</ol>
+
+<h2>2. Estructura de Módulos del Proyecto</h2>
+<table>
+  <thead>
+    <tr>
+      <th>Capa</th>
+      <th>Archivo</th>
+      <th>Responsabilidad Primaria</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Core</strong></td>
+      <td><code>Piece.ts</code></td>
+      <td>Define tipos de jugador (<code>"human" | "ai"</code>) y pieza (<code>{ player, king }</code>).</td>
+    </tr>
+    <tr>
+      <td><strong>Core</strong></td>
+      <td><code>Move.ts</code></td>
+      <td>Estructura de coordenadas de origen, destino y ficha comida (<code>Position</code>, <code>Move</code>).</td>
+    </tr>
+    <tr>
+      <td><strong>Core</strong></td>
+      <td><code>Board.ts</code></td>
+      <td>Matriz 8x8, colocación inicial, conteo de fichas, coronaciones, eliminación y clonación.</td>
+    </tr>
+    <tr>
+      <td><strong>Core</strong></td>
+      <td><code>GameState.ts</code></td>
+      <td>Controlador del estado: tablero activo, alternancia de turnos y cálculo de ganador.</td>
+    </tr>
+    <tr>
+      <td><strong>Reglas</strong></td>
+      <td><code>CheckersRules.ts</code></td>
+      <td>Movimientos simples, capturas en 2 casillas, toma obligatoria global y reyes en 4 diagonales.</td>
+    </tr>
+    <tr>
+      <td><strong>Agentes</strong></td>
+      <td><code>Agent.ts</code></td>
+      <td>Interfaz base con el contrato polimórfico: <code>chooseMove(gameState): Move | null</code>.</td>
+    </tr>
+    <tr>
+      <td><strong>Agentes</strong></td>
+      <td><code>ReactiveAgent.ts</code></td>
+      <td>Agente basado en reglas condición–acción (Prioridades: Captura > Corona > Evasión > Avance).</td>
+    </tr>
+    <tr>
+      <td><strong>Juego</strong></td>
+      <td><code>BoardRenderer.ts</code></td>
+      <td>Dibuja casillas, fichas, coronas (♛) y cuadros verdes de resaltado con Phaser.</td>
+    </tr>
+    <tr>
+      <td><strong>Juego</strong></td>
+      <td><code>GameScene.ts</code></td>
+      <td>Orquestador visual, clics, ejecución física de jugadas y retrasos visuales (500 ms) para la IA.</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="page-break"></div>
+
+<h2>3. Cronología y Detalles de lo Implementado</h2>
+
+<h3>3.1. Motor Base y Reglas del Juego (Sprint 1)</h3>
+<ul>
+  <li><strong>Representación Matricial (<code>Board.ts</code>):</strong> Tablero de 8x8 donde las piezas solo ocupan casillas jugables oscuras (<code>(row + column) % 2 !== 0</code>). Las filas 0-2 alojan fichas de la IA (negras) y las filas 5-7 fichas del jugador (blancas).</li>
+  <li><strong>Movimiento Normal (<code>CheckersRules.ts</code>):</strong> Fichas peón avanzan en diagonal 1 casilla hacia adelante (humanos decrementan fila, IA incrementa fila).</li>
+  <li><strong>Mecánica de Captura Individual:</strong> Si una ficha enemiga está a 1 casilla diagonal y la casilla posterior a 2 saltos está vacía, se genera un <code>Move</code> con la propiedad <code>captured: { row, column }</code>. La pieza capturada es retirada del tablero mediante <code>board.removePiece()</code>.</li>
+  <li><strong>Toma Obligatoria Global (<code>hasAnyCapture</code>):</strong> En las damas oficiales, si cualquier ficha del jugador tiene captura, <em>está prohibido mover cualquier otra ficha con movimiento simple</em>. <code>CheckersRules.getValidMoves()</code> valida si el jugador completo tiene capturas pendientes; de ser así, solo devuelve capturas.</li>
+  <li><strong>Captura Múltiple Encadenada (<code>forcedPiece</code> y <code>getCapturesForPiece</code>):</strong> Al completar un salto, se consulta si la misma ficha en su nueva posición puede volver a capturar. Si puede, no se cede el turno y se restringe la interacción exclusivamente a esa ficha.</li>
+  <li><strong>Coronación y Reyes (<code>king: boolean</code>):</strong> Cuando una ficha blanca llega a la fila 0 o una negra a la fila 7, se corona como reina (♛). Los reyes pueden moverse y capturar en las 4 direcciones diagonales (1 casilla por paso). Si corona durante una captura múltiple, se finaliza la secuencia y se cede el turno según la regla simplificada acordada.</li>
+  <li><strong>Fin de Partida (<code>getWinner()</code>):</strong> Se detecta automáticamente el fin de juego por dos vías:
+    <ol>
+      <li>Exterminio de piezas: <code>board.countPieces(player) === 0</code>.</li>
+      <li>Bloqueo / Ahogado: Cuando el jugador en turno no tiene ningún movimiento legal disponible (<code>getAllValidMoves().length === 0</code>).</li>
+    </ol>
+  </li>
+</ul>
+
+<h3>3.2. Implementación del Agente Reactivo Simple (<code>ReactiveAgent.ts</code>)</h3>
+<p>
+Siguiendo los fundamentos teóricos de Inteligencia Artificial (Russell & Norvig), un <strong>Agente Reactivo Simple</strong> responde al entorno mediante reglas <em>condición–acción</em> basadas exclusivamente en el estado presente (percepción actual), sin memoria histórica ni proyección de árbol de juego hacia el futuro.
+</p>
+<p>El método <code>chooseMove(gameState)</code> procesa en estricto orden de precedencia las siguientes reglas:</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>Prioridad</th>
+      <th>Regla</th>
+      <th>Condición (Percepción)</th>
+      <th>Acción</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><span class="badge badge-amber">Regla 1</span></td>
+      <td><strong>Captura</strong></td>
+      <td>Existe algún movimiento legal con <code>move.captured !== undefined</code>.</td>
+      <td>Ejecuta la captura de inmediato.</td>
+    </tr>
+    <tr>
+      <td><span class="badge badge-green">Regla 2</span></td>
+      <td><strong>Coronación</strong></td>
+      <td>Existe una ficha que al mover alcance la fila extrema (0 o 7).</td>
+      <td>Mueve hacia la casilla que consagra a la ficha como reina.</td>
+    </tr>
+    <tr>
+      <td><span class="badge badge-blue">Regla 3</span></td>
+      <td><strong>Evasión</strong></td>
+      <td>Una ficha propia se encuentra amenazada por el oponente en el estado actual (<code>isPieceThreatened</code>).</td>
+      <td>Intenta desplazar la ficha en peligro a cualquier casilla legal.</td>
+    </tr>
+    <tr>
+      <td><span class="badge badge-blue">Regla 4</span></td>
+      <td><strong>Avance</strong></td>
+      <td>Existen fichas normales que pueden avanzar hacia la meta.</td>
+      <td>Selecciona la ficha que logre mayor avance (<code>findAdvanceMove</code>).</td>
+    </tr>
+    <tr>
+      <td><span class="badge">Default</span></td>
+      <td><strong>Legal</strong></td>
+      <td>Ninguna condición anterior se activa (ej. solo reyes libres).</td>
+      <td>Ejecuta el primer movimiento legal devuelto por el motor (<code>moves[0]</code>).</td>
+    </tr>
+  </tbody>
+</table>
+
+<h3>3.3. Retrasos Visuales y Capturas Múltiples de la IA</h3>
+<p>
+Para que las decisiones de la IA no ocurran de forma instantánea e imperceptible, en <code>GameScene.ts</code> se configuraron pausas con <code>this.time.delayedCall(500, ...)</code>:
+</p>
+<ul>
+  <li>Pausa de 500 ms tras el turno del jugador antes de que la IA elija y mueva.</li>
+  <li>Renderizado intermedio obligatorio tras cada salto de captura múltiple, con 500 ms adicionales entre cada salto encadenado antes de entregar el turno al jugador.</li>
+</ul>
+
+<h3>3.4. Preparación para Búsqueda: <code>Board.clone()</code></h3>
+<p>
+Se incorporó el método de clonación profunda en <code>Board.ts</code>, garantizando que cada celda y ficha se copien por valor (no por referencia). Esto previene efectos colaterales al evaluar estados hipotéticos en Minimax.
+</p>
+
+<div class="page-break"></div>
+
+<h2>4. Guía de Modificaciones Solicitables (Cheat Sheet de Cambios)</h2>
+<p>
+Si durante la evaluación, sustentación o revisión del proyecto los docentes solicitan cambios específicos en las reglas o en el comportamiento del agente, aquí se detalla exactamente qué archivos y líneas modificar:
+</p>
+
+<h3>Escenario A: "¿Qué pasa si la captura NO es obligatoria?"</h3>
+<div class="callout callout-warning">
+  <strong>Explicación:</strong> Convertir el juego a damas con toma opcional (estilo tradicional casual).
+</div>
+<p><strong>Archivo a modificar:</strong> <code>src/rules/CheckersRules.ts</code></p>
+<pre>// En CheckersRules.getValidMoves(), actualmente existe:
+const playerMustCapture = this.hasAnyCapture(board, piece.player);
+if (playerMustCapture) {
+    return captures;
+}
+return this.getNormalMoves(board, row, column);
+
+// REEMPLAZAR POR (permitir ambos simultáneamente si no se desea obligar):
+return [...captures, ...this.getNormalMoves(board, row, column)];
+</pre>
+
+<h3>Escenario B: "¿Cómo hacer que el Agente priorice la Evasión antes que la Coronación?"</h3>
+<div class="callout callout-warning">
+  <strong>Explicación:</strong> Cambiar el temperamento del agente reactivo para que sea más defensivo que codicioso.
+</div>
+<p><strong>Archivo a modificar:</strong> <code>src/agents/ReactiveAgent.ts</code></p>
+<p>Simplemente intercambia el orden de los bloques en <code>chooseMove()</code>: coloca el bloque de <code>escapeMove</code> (Regla 3) antes del bloque de <code>promotionMove</code> (Regla 2).</p>
+
+<h3>Escenario C: "¿Cómo cambiar la velocidad o tiempo de respuesta de la IA?"</h3>
+<p><strong>Archivo a modificar:</strong> <code>src/game/scenes/GameScene.ts</code></p>
+<p>Busca los dos llamados a <code>this.time.delayedCall(500, ...)</code> en <code>runAiTurn()</code> y <code>executeAiMove()</code> y sustituye <code>500</code> (milisegundos) por el valor deseado (ej. <code>250</code> para partidas rápidas o <code>1000</code> para presentaciones pausadas).</p>
+
+<h3>Escenario D: "¿Cómo implementar 'Reinas Voladoras' (Damas Internacionales)?"</h3>
+<p><strong>Archivo a modificar:</strong> <code>src/rules/CheckersRules.ts</code></p>
+<p>En <code>getNormalMoves</code> y <code>getCaptureMoves</code>, en lugar de evaluar una distancia fija de <code>1</code> o <code>2</code> casillas, se utiliza un bucle <code>while (board.isInside(...))</code> en cada una de las 4 direcciones diagonales hasta encontrar un obstáculo o el borde del tablero.</p>
+
+<h3>Escenario E: "¿Cómo expandir el tamaño del tablero a 10x10?"</h3>
+<p><strong>Archivos a modificar:</strong></p>
+<ol>
+  <li><code>src/core/Board.ts</code>: Modificar <code>public static readonly SIZE = 10;</code> y actualizar en <code>initializePieces()</code> las filas iniciales (0 a 3 para IA, y 6 a 9 para humanos).</li>
+  <li><code>src/game/board/BoardRenderer.ts</code>: Ajustar <code>tileSize = 50</code>, <code>offsetX</code> y <code>offsetY</code> para que quepa en el canvas de 800x600.</li>
+</ol>
+
+<h2>5. Comparativa Técnica: Agente Reactivo vs. Agente por Objetivos (Minimax)</h2>
+<p>
+Para la defensa del proyecto, es crucial dominar la justificación conceptual de ambos agentes:
+</p>
+<table>
+  <thead>
+    <tr>
+      <th>Criterio</th>
+      <th>Agente Reactivo Simple (Implementado)</th>
+      <th>Agente por Objetivos / Minimax (Próximo)</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Horizonte Temporal</strong></td>
+      <td>Inmediato (t=0). Solo percibe el estado actual.</td>
+      <td>A futuro (t=1, 2, ... d). Explora turnos alternados.</td>
+    </tr>
+    <tr>
+      <td><strong>Mecanismo de Decisión</strong></td>
+      <td>Reglas <em>If-Then</em> con orden de precedencia fijo.</td>
+      <td>Función de evaluación heurística + Minimax + Poda Alfa-Beta.</td>
+    </tr>
+    <tr>
+      <td><strong>Uso de Memoria/CPU</strong></td>
+      <td>Mínimo y constante. O(1) en memoria, O(n) movimientos.</td>
+      <td>Exponencial según la profundidad O(b^d). Requiere podas.</td>
+    </tr>
+    <tr>
+      <td><strong>Vulnerabilidad</strong></td>
+      <td>Fácil de emboscar: no ve trampas de sacrificio.</td>
+      <td>Estratégico: anticipa sacrificios para obtener ventaja material.</td>
+    </tr>
+    <tr>
+      <td><strong>Independencia Gráfica</strong></td>
+      <td>Total. Consume <code>GameState</code> y devuelve <code>Move</code>.</td>
+      <td>Total. Simula futuros con <code>Board.clone()</code>.</td>
+    </tr>
+  </tbody>
+</table>
+
+</body>
+</html>
