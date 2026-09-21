@@ -27,6 +27,10 @@ export class GameScene extends Phaser.Scene {
     private turnHadCapture = false;
     private turnHadPromotion = false;
 
+    private aiTurnInProgress = false;
+    private gameSessionId = 0;
+    private pendingAiTimers: Phaser.Time.TimerEvent[] = [];
+
     constructor() {
         super("GameScene");
     }
@@ -43,6 +47,13 @@ export class GameScene extends Phaser.Scene {
                     return;
                 }
 
+                if (
+                    this.aiTurnInProgress ||
+                    this.gameState.getCurrentPlayer() !== "human"
+                ) {
+                    return;
+                }
+
                 this.handleBoardClick(
                     pointer.x,
                     pointer.y
@@ -55,7 +66,7 @@ export class GameScene extends Phaser.Scene {
 
     private showAgentSelection(): void {
 
-        this.children.removeAll(true);
+        this.clearScreen();
 
         this.add.text(
             400,
@@ -142,7 +153,13 @@ export class GameScene extends Phaser.Scene {
             button.setFillStyle(0x333333);
         });
 
-        button.on("pointerdown", () => {
+        button.on("pointerdown", (
+            _pointer: Phaser.Input.Pointer,
+            _localX: number,
+            _localY: number,
+            event: Phaser.Types.Input.EventData
+        ) => {
+            event.stopPropagation();
             button.disableInteractive();
             text.setVisible(false);
             onClick();
@@ -153,6 +170,8 @@ export class GameScene extends Phaser.Scene {
         agent: Agent,
         name: string
     ): void {
+
+        this.beginNewSession();
 
         this.aiAgent = agent;
         this.agentName = name;
@@ -260,10 +279,21 @@ export class GameScene extends Phaser.Scene {
             button.setFillStyle(0x333333);
         });
 
-        button.on("pointerdown", onClick);
+        button.on("pointerdown", (
+            _pointer: Phaser.Input.Pointer,
+            _localX: number,
+            _localY: number,
+            event: Phaser.Types.Input.EventData
+        ) => {
+            event.stopPropagation();
+            button.disableInteractive();
+            onClick();
+        });
     }
 
     private restartGame(): void {
+
+        this.beginNewSession();
 
         this.gameState = new GameState();
 
@@ -279,6 +309,8 @@ export class GameScene extends Phaser.Scene {
 
     private returnToMenu(): void {
 
+        this.beginNewSession();
+
         this.aiAgent = null;
         this.agentName = "";
 
@@ -290,6 +322,66 @@ export class GameScene extends Phaser.Scene {
         this.turnHadPromotion = false;
 
         this.showAgentSelection();
+    }
+
+    private beginNewSession(): void {
+
+        this.gameSessionId++;
+
+        if (this.pendingAiTimers.length > 0) {
+            this.time.removeEvent(this.pendingAiTimers);
+            this.pendingAiTimers = [];
+        }
+
+        this.aiTurnInProgress = false;
+    }
+
+    private scheduleAiAction(
+        callback: () => void
+    ): void {
+
+        const sessionId = this.gameSessionId;
+
+        let timer!: Phaser.Time.TimerEvent;
+
+        timer = this.time.delayedCall(
+            500,
+            () => {
+                this.pendingAiTimers =
+                    this.pendingAiTimers.filter(
+                        pendingTimer => pendingTimer !== timer
+                    );
+
+                if (
+                    sessionId !== this.gameSessionId ||
+                    this.aiAgent === null ||
+                    this.winner !== null ||
+                    this.gameState.isDraw() ||
+                    this.gameState.getCurrentPlayer() !== "ai"
+                ) {
+                    if (sessionId === this.gameSessionId) {
+                        this.aiTurnInProgress = false;
+                    }
+
+                    return;
+                }
+
+                callback();
+            }
+        );
+
+        this.pendingAiTimers.push(timer);
+    }
+
+    private clearScreen(): void {
+
+        const gameObjects = [
+            ...this.children.getChildren()
+        ];
+
+        for (const gameObject of gameObjects) {
+            gameObject.destroy();
+        }
     }
 
     // ─── Lógica de movimiento ──────────────────────────────────────────────────
@@ -335,7 +427,9 @@ export class GameScene extends Phaser.Scene {
 
         if (
             this.winner !== null ||
-            this.gameState.isDraw()
+            this.gameState.isDraw() ||
+            this.aiTurnInProgress ||
+            this.gameState.getCurrentPlayer() !== "human"
         ) {
             return;
         }
@@ -506,7 +600,8 @@ export class GameScene extends Phaser.Scene {
         if (
             this.aiAgent === null ||
             this.winner !== null ||
-            this.gameState.isDraw()
+            this.gameState.isDraw() ||
+            this.aiTurnInProgress
         ) {
             return;
         }
@@ -519,8 +614,9 @@ export class GameScene extends Phaser.Scene {
 
         const agent = this.aiAgent;
 
-        this.time.delayedCall(
-            500,
+        this.aiTurnInProgress = true;
+
+        this.scheduleAiAction(
             () => {
                 const move =
                     agent.chooseMove(
@@ -528,6 +624,7 @@ export class GameScene extends Phaser.Scene {
                     );
 
                 if (move === null) {
+                    this.aiTurnInProgress = false;
                     this.checkGameOver();
                     return;
                 }
@@ -563,8 +660,7 @@ export class GameScene extends Phaser.Scene {
                 const nextMove =
                     nextCaptures[0];
 
-                this.time.delayedCall(
-                    500,
+                this.scheduleAiAction(
                     () => {
                         this.executeAiMove(
                             nextMove
@@ -577,6 +673,7 @@ export class GameScene extends Phaser.Scene {
         }
 
         this.finishTurn();
+        this.aiTurnInProgress = false;
     }
 
     private checkGameOver(): boolean {
@@ -602,7 +699,7 @@ export class GameScene extends Phaser.Scene {
 
     private renderBoard(): void {
 
-        this.children.removeAll(true);
+        this.clearScreen();
 
         this.boardRenderer =
             new BoardRenderer(

@@ -14,4 +14,10 @@ const config: Phaser.Types.Core.GameConfig = {
     ]
 };
 
-new Phaser.Game(config);
+const game = new Phaser.Game(config);
+
+if (import.meta.env.DEV) {
+    Object.assign(window, {
+        __DAMAS_GAME__: game
+    });
+}
