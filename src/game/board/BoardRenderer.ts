@@ -1,15 +1,16 @@
 import Phaser from "phaser";
 import { Board } from "../../core/Board";
-import type { Piece } from "../../core/Piece";
+import { PieceRenderer } from "../pieces/PieceRenderer";
+import { GAME_THEME } from "../ui/GameTheme";
 
 export class BoardRenderer {
 
     private readonly scene: Phaser.Scene;
     private readonly board: Board;
-
     private readonly tileSize: number;
     private readonly offsetX: number;
     private readonly offsetY: number;
+    private readonly pieceRenderer: PieceRenderer;
 
     constructor(
         scene: Phaser.Scene,
@@ -23,101 +24,42 @@ export class BoardRenderer {
         this.tileSize = tileSize;
         this.offsetX = offsetX;
         this.offsetY = offsetY;
+        this.pieceRenderer = new PieceRenderer(scene);
     }
 
     public render(): void {
+        this.drawFrame();
+
         for (let row = 0; row < Board.SIZE; row++) {
-            for (let column = 0; column < Board.SIZE; column++) {
+            for (
+                let column = 0;
+                column < Board.SIZE;
+                column++
+            ) {
                 this.drawCell(row, column);
 
-                const piece = this.board.getCell(row, column);
+                const piece =
+                    this.board.getCell(row, column);
 
                 if (piece !== null) {
-                    this.drawPiece(row, column, piece);
+                    const { x, y } =
+                        this.getCellCenter(row, column);
+
+                    this.pieceRenderer.render(
+                        x,
+                        y,
+                        piece,
+                        this.tileSize
+                    );
                 }
             }
         }
     }
 
-    private drawCell(row: number, column: number): void {
-        const isDark = (row + column) % 2 !== 0;
-
-        const { x, y } = this.getCellCenter(row, column);
-
-        this.scene.add.rectangle(
-            x,
-            y,
-            this.tileSize,
-            this.tileSize,
-            isDark ? 0x704214 : 0xdec49c
-        );
-    }
-
-    private drawPiece(
-        row: number,
-        column: number,
-        piece: Piece
-    ): void {
-        const { x, y } = this.getCellCenter(row, column);
-
-        const color =
-            piece.player === "human"
-                ? 0xe8e8e8
-                : 0x202020;
-
-        const pieceRadius = this.tileSize * 0.36;
-
-        const circle = this.scene.add.circle(
-            x,
-            y,
-            pieceRadius,
-            color
-        );
-
-        circle.setStrokeStyle(
-            3,
-            piece.player === "human"
-                ? 0xaaaaaa
-                : 0x555555
-        );
-
-        if (piece.king) {
-            this.scene.add.text(
-                x,
-                y,
-                "♛",
-                {
-                    fontSize: "32px",
-                    color:
-                        piece.player === "human"
-                            ? "#222222"
-                            : "#ffffff"
-                }
-            ).setOrigin(0.5);
-        }
-    }
-
-    private getCellCenter(
-        row: number,
-        column: number
-    ): { x: number; y: number } {
-        return {
-            x:
-                this.offsetX +
-                column * this.tileSize +
-                this.tileSize / 2,
-
-            y:
-                this.offsetY +
-                row * this.tileSize +
-                this.tileSize / 2
-        };
-    }
     public getBoardPosition(
         x: number,
         y: number
     ): { row: number; column: number } | null {
-
         const column = Math.floor(
             (x - this.offsetX) / this.tileSize
         );
@@ -135,29 +77,93 @@ export class BoardRenderer {
             return null;
         }
 
-        return {
-            row,
-            column
-        };
+        return { row, column };
     }
 
     public highlightCell(
         row: number,
         column: number
     ): void {
-
-        const { x, y } = this.getCellCenter(
-            row,
-            column
-        );
+        const { x, y } =
+            this.getCellCenter(row, column);
 
         this.scene.add.rectangle(
             x,
             y,
             this.tileSize - 8,
             this.tileSize - 8,
-            0x00ff00,
+            GAME_THEME.highlight,
+            0.34
+        ).setStrokeStyle(
+            2,
+            GAME_THEME.highlight,
+            0.9
+        );
+
+        this.scene.add.circle(
+            x,
+            y,
+            7,
+            GAME_THEME.highlight,
+            0.9
+        );
+    }
+
+    private drawFrame(): void {
+        const boardSize = Board.SIZE * this.tileSize;
+        const centerX = this.offsetX + boardSize / 2;
+        const centerY = this.offsetY + boardSize / 2;
+
+        this.scene.add.rectangle(
+            centerX,
+            centerY + 5,
+            boardSize + 22,
+            boardSize + 22,
+            0x000000,
             0.35
         );
+
+        this.scene.add.rectangle(
+            centerX,
+            centerY,
+            boardSize + 18,
+            boardSize + 18,
+            GAME_THEME.boardFrame
+        ).setStrokeStyle(3, GAME_THEME.gold);
+    }
+
+    private drawCell(
+        row: number,
+        column: number
+    ): void {
+        const isDark = (row + column) % 2 !== 0;
+        const { x, y } =
+            this.getCellCenter(row, column);
+
+        this.scene.add.rectangle(
+            x,
+            y,
+            this.tileSize,
+            this.tileSize,
+            isDark
+                ? GAME_THEME.boardDark
+                : GAME_THEME.boardLight
+        );
+    }
+
+    private getCellCenter(
+        row: number,
+        column: number
+    ): { x: number; y: number } {
+        return {
+            x:
+                this.offsetX +
+                column * this.tileSize +
+                this.tileSize / 2,
+            y:
+                this.offsetY +
+                row * this.tileSize +
+                this.tileSize / 2
+        };
     }
 }

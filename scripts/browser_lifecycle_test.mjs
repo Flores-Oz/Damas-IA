@@ -143,6 +143,18 @@ async function clickBoard(x, y) {
     })()`);
 }
 
+async function captureScreenshot(path) {
+    const screenshot = await command("Page.captureScreenshot", {
+        format: "png"
+    });
+
+    await mkdir("logs", { recursive: true });
+    await writeFile(
+        path,
+        Buffer.from(screenshot.data, "base64")
+    );
+}
+
 async function snapshot() {
     return evaluate(`(() => {
         const game = window.__DAMAS_GAME__;
@@ -330,6 +342,7 @@ await waitFor(
 );
 
 const initial = await snapshot();
+await captureScreenshot("logs/browser-menu.png");
 
 await clickGame(400, 280);
 
@@ -406,15 +419,7 @@ const secondAfterTurn = await waitFor(
     30000
 );
 
-const screenshot = await command("Page.captureScreenshot", {
-    format: "png"
-});
-
-await mkdir("logs", { recursive: true });
-await writeFile(
-    "logs/browser-lifecycle-final.png",
-    Buffer.from(screenshot.data, "base64")
-);
+await captureScreenshot("logs/browser-lifecycle-final.png");
 
 const report = {
     initial,

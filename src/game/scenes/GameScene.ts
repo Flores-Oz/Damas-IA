@@ -9,6 +9,7 @@ import type { Player } from "../../core/Piece";
 
 import { CheckersRules } from "../../rules/CheckersRules";
 import { BoardRenderer } from "../board/BoardRenderer";
+import { GameUi } from "../ui/GameUi";
 import type { Agent } from "../../agents/Agent";
 import { ReactiveAgent } from "../../agents/ReactiveAgent";
 import { GoalAgent } from "../../agents/GoalAgent";
@@ -17,6 +18,7 @@ export class GameScene extends Phaser.Scene {
 
     private gameState!: GameState;
     private boardRenderer!: BoardRenderer;
+    private gameUi!: GameUi;
     private aiAgent: Agent | null = null;
     private agentName = "";
 
@@ -37,6 +39,7 @@ export class GameScene extends Phaser.Scene {
 
     create(): void {
 
+        this.gameUi = new GameUi(this);
         this.showAgentSelection();
 
         this.input.on(
@@ -68,102 +71,20 @@ export class GameScene extends Phaser.Scene {
 
         this.clearScreen();
 
-        this.add.text(
-            400,
-            120,
-            "DAMAS IA",
-            {
-                fontSize: "48px",
-                color: "#ffffff"
-            }
-        ).setOrigin(0.5);
-
-        this.add.text(
-            400,
-            190,
-            "Selecciona el agente",
-            {
-                fontSize: "24px",
-                color: "#cccccc"
-            }
-        ).setOrigin(0.5);
-
-        this.createAgentButton(
-            400,
-            280,
-            "Agente Reactivo",
+        this.gameUi.renderAgentSelection(
             () => {
                 this.startGame(
                     new ReactiveAgent(),
                     "Reactivo"
                 );
-            }
-        );
-
-        this.createAgentButton(
-            400,
-            370,
-            "Agente por Objetivos (Minimax)",
+            },
             () => {
                 this.startGame(
                     new GoalAgent(),
-                    "Objetivos - Minimax"
+                    "Minimax"
                 );
             }
         );
-    }
-
-    private createAgentButton(
-        x: number,
-        y: number,
-        label: string,
-        onClick: () => void
-    ): void {
-
-        const button =
-            this.add.rectangle(
-                x,
-                y,
-                380,
-                60,
-                0x333333
-            );
-
-        button
-            .setStrokeStyle(2, 0xffffff)
-            .setInteractive({ useHandCursor: true });
-
-        const text =
-            this.add.text(
-                x,
-                y,
-                label,
-                {
-                    fontSize: "20px",
-                    color: "#ffffff"
-                }
-            )
-            .setOrigin(0.5);
-
-        button.on("pointerover", () => {
-            button.setFillStyle(0x555555);
-        });
-
-        button.on("pointerout", () => {
-            button.setFillStyle(0x333333);
-        });
-
-        button.on("pointerdown", (
-            _pointer: Phaser.Input.Pointer,
-            _localX: number,
-            _localY: number,
-            event: Phaser.Types.Input.EventData
-        ) => {
-            event.stopPropagation();
-            button.disableInteractive();
-            text.setVisible(false);
-            onClick();
-        });
     }
 
     private startGame(
@@ -193,102 +114,29 @@ export class GameScene extends Phaser.Scene {
     private showGameOver(): void {
 
         let message: string;
+        let subtitle: string;
 
         if (this.gameState.isDraw()) {
-            message = "¡EMPATE!";
+            message = "EMPATE";
+            subtitle = "La partida terminó sin progreso suficiente";
         } else if (this.winner === "human") {
-            message = "¡JUGADOR GANA!";
+            message = "¡VICTORIA!";
+            subtitle = "Superaste al agente de inteligencia artificial";
         } else {
-            message = "¡IA GANA!";
+            message = "GANA LA IA";
+            subtitle = "El agente controló el tablero esta vez";
         }
 
-        this.add.rectangle(
-            400,
-            300,
-            500,
-            300,
-            0x111111,
-            0.95
-        )
-        .setStrokeStyle(3, 0xffffff);
-
-        this.add.text(
-            400,
-            220,
+        this.gameUi.renderGameOver(
             message,
-            {
-                fontSize: "36px",
-                color: "#ffffff"
-            }
-        ).setOrigin(0.5);
-
-        this.createEndButton(
-            400,
-            300,
-            "Jugar de nuevo",
+            subtitle,
             () => {
                 this.restartGame();
-            }
-        );
-
-        this.createEndButton(
-            400,
-            380,
-            "Volver al menú",
+            },
             () => {
                 this.returnToMenu();
             }
         );
-    }
-
-    private createEndButton(
-        x: number,
-        y: number,
-        label: string,
-        onClick: () => void
-    ): void {
-
-        const button =
-            this.add.rectangle(
-                x,
-                y,
-                280,
-                50,
-                0x333333
-            );
-
-        button
-            .setStrokeStyle(2, 0xffffff)
-            .setInteractive({ useHandCursor: true });
-
-        this.add.text(
-            x,
-            y,
-            label,
-            {
-                fontSize: "20px",
-                color: "#ffffff"
-            }
-        ).setOrigin(0.5);
-
-        button.on("pointerover", () => {
-            button.setFillStyle(0x555555);
-        });
-
-        button.on("pointerout", () => {
-            button.setFillStyle(0x333333);
-        });
-
-        button.on("pointerdown", (
-            _pointer: Phaser.Input.Pointer,
-            _localX: number,
-            _localY: number,
-            event: Phaser.Types.Input.EventData
-        ) => {
-            event.stopPropagation();
-            button.disableInteractive();
-            onClick();
-        });
     }
 
     private restartGame(): void {
@@ -700,6 +548,7 @@ export class GameScene extends Phaser.Scene {
     private renderBoard(): void {
 
         this.clearScreen();
+        this.gameUi.renderBackground();
 
         this.boardRenderer =
             new BoardRenderer(
@@ -720,28 +569,11 @@ export class GameScene extends Phaser.Scene {
         const currentPlayer =
             this.gameState.getCurrentPlayer();
 
-        this.add.text(
-            20,
-            20,
-            `Turno: ${
-                currentPlayer === "human"
-                    ? "Jugador"
-                    : "IA"
-            }`,
-            {
-                fontSize: "24px",
-                color: "#ffffff"
-            }
+        this.gameUi.renderHud(
+            currentPlayer,
+            this.agentName,
+            this.gameState.board.countPieces("human"),
+            this.gameState.board.countPieces("ai")
         );
-
-        this.add.text(
-            600,
-            20,
-            `IA: ${this.agentName}`,
-            {
-                fontSize: "18px",
-                color: "#aaaaaa"
-            }
-        ).setOrigin(0.5);
     }
 }
